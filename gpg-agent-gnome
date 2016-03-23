@@ -1,0 +1,27 @@
+#! /bin/bash
+# Author: Martin Wilck
+
+[ -z "$GPG_AGENT_INFO" ] || {
+    echo $0: GPG_AGENT_INFO is already set >&2
+    exit 0
+}
+
+unset SSH_AUTH_SOCK
+eval $(TERM=xterm /usr/bin/gpg-agent --daemon --pinentry-program=/usr/bin/pinentry-gtk)
+
+[ -z "$GPG_AGENT_INFO" ] && {
+    echo $0: gpg-agent failed to start
+    exit 1
+}
+
+echo setting GPG_AGENT_INFO=$GPG_AGENT_INFO in dbus environment >&2
+dbus-send --print-reply --session \
+	--dest=org.gnome.SessionManager /org/gnome/SessionManager org.gnome.SessionManager.Setenv \
+	string:GPG_AGENT_INFO string:"$GPG_AGENT_INFO" >&2
+
+[ -n "$SSH_AUTH_SOCK" ] && {
+  echo setting SSH_AUTH_SOCK=$SSH_AUTH_SOCK in dbus environment >&2
+  dbus-send --print-reply --session \
+	  --dest=org.gnome.SessionManager /org/gnome/SessionManager org.gnome.SessionManager.Setenv \
+	  string:SSH_AUTH_SOCK string:"$SSH_AUTH_SOCK" >&2
+}

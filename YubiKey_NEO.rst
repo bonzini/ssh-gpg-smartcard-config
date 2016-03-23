@@ -85,60 +85,20 @@ If running gnome, you have to prevent gnome-keyring from autostarting its ssh-ag
   sed -e '$aX-GNOME-Autostart-enabled=false' -e '$aHidden=true' \
       /etc/xdg/autostart/gnome-keyring-ssh.desktop > $HOME/.config/autostart/gnome-keyring-ssh.desktop
 
-On GNOME 3.16 or earlier, do the same for the broken gpg-agent implementation, which does not support smartcards:
+Now create a new .desktop file to autostart GPG agent.  If you are running in GNOME 3.16 or earlier call the file gnome-keyring-gpg.desktop instead.  It will then override the broken gpg-agent in GNOME 3.16 and earlier, which does not support smartcards.
 
-  sed -e '$aX-GNOME-Autostart-enabled=false' -e '$aHidden=true' \
-      /etc/xdg/autostart/gnome-keyring-gpg.desktop > $HOME/.config/autostart/gnome-keyring-gpg.desktop
-
-Next, place the following in ``~/.bashrc`` to ensure gpg-agent starts with ``--enable-ssh-support``
-::
-
-    if [ ! -f /run/user/($id -u)/gpg-agent.env ]; then
-        killall gpg-agent;
-        eval $(gpg-agent --daemon --enable-ssh-support > /run/user/($id -u)/gpg-agent.env);
-    fi
-    . /run/user/($id -u)/gpg-agent.env
-
-Now go to next step (Reload GNOME-Shell) :)
-
-Otherwise, there is another option:
-
-A rather tricky part of this configuration is to have a simple wrapper script, called `gpg-agent-wrapper <http://blog.flameeyes.eu/2010/08/smart-cards-and-secret-agents>`_. This script is used with thanks from Diego E. Pettenò::
-
-  wget -O ~/.gnupg/gpg-agent-wrapper https://github.com/lfit/ssh-gpg-smartcard-config/raw/master/gpg-agent-wrapper && chmod +x ~/.gnupg/gpg-agent-wrapper 
-
-**NOTE:** The above code has been altered to allow the ``.gpg-agent-info`` to run after SSH_AUTH_SOCK. Please see the CREDITS section below for details.
-
-The above **gpg-agent-wrapper** script is invoked using X and bash (or favorite shell). Please create the following files as below.
-
-The X session::
-
-  $ cat /etc/X11/xinit/xinitrc.d/01-xsession
-  [ -f ${HOME}/.xsession ] && source ${HOME}/.xsession
-
-  $ ls -l /etc/X11/xinit/xinitrc.d/01-xsession
-  -rwxr-xr-x. 1 root root 53 Nov 23 10:54 /etc/X11/xinit/xinitrc.d/01-xsession
-
-  $ cat ~/.xsession
-  source ${HOME}/.gnupg/gpg-agent-wrapper
-
-The shell rc file::
-
-  $ cat ~/.bashrc
-  # .bashrc
-
-  # Source global definitions
-  if [ -f /etc/bashrc ]; then
-    . /etc/bashrc
-  fi
-
-  ..snip..
-
-  # ssh authentication component
-  source ${HOME}/.gnupg/gpg-agent-wrapper
-
-  ..snip..
-
+  wget -O ~/.gnupg/gpg-agent-gnome https://github.com/lfit/ssh-gpg-smartcard-config/raw/master/gpg-agent-gnome && chmod +x ~/.gnupg/gpg-agent-gnome
+  cat > $HOME/.config/autostart/gpg-agent-gnome.desktop << EOF
+  [Desktop Entry]
+  Type=Application
+  Name=GPG Password Agent
+  Comment=GNOME Keyring: GPG Agent
+  Exec=$HOME/.gnupg/gpg-agent-gnome
+  OnlyShowIn=GNOME;Unity;MATE;
+  X-GNOME-Autostart-Phase=Initialization
+  X-GNOME-AutoRestart=false
+  X-GNOME-Autostart-Notify=true
+  EOF
 
 Reload GNOME-Shell So that the gpg-agent stuff above takes effect. 
 ------------------
